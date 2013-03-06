@@ -7,7 +7,7 @@ import           Hakyll
 
 --------------------------------------------------------------------------------
 main :: IO ()
-main = hakyll $ do
+main = hakyllWith config $ do
     match "images/*" $ do
         route   idRoute
         compile copyFileCompiler
@@ -71,3 +71,6 @@ postList sortFilter = do
     list    <- applyTemplateList itemTpl postCtx posts
     return list
 
+--------------------------------------------------------------------------------
+config :: Configuration
+config = defaultConfiguration { deployCommand = "rsync -avz _site/* takashi@avatheon.net:~/public_html" }
