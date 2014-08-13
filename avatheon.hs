@@ -1,7 +1,6 @@
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
-import           Control.Applicative ((<$>))
-import           Data.Monoid         (mappend)
+import           Data.Monoid (mappend)
 import           Hakyll
 
 
@@ -32,9 +31,10 @@ main = hakyllWith config $ do
     create ["archive.html"] $ do
         route idRoute
         compile $ do
+            posts <- recentFirst =<< loadAll "posts/*"
             let archiveCtx =
-                    field "posts" (\_ -> postList recentFirst) `mappend`
-                    constField "title" "Archives"              `mappend`
+                    listField "posts" postCtx (return posts) `mappend`
+                    constField "title" "Archives"            `mappend`
                     defaultContext
 
             makeItem ""
@@ -46,11 +46,14 @@ main = hakyllWith config $ do
     match "index.html" $ do
         route idRoute
         compile $ do
-            let indexCtx = field "posts" $ \_ -> postList (take 3 . recentFirst)
+            posts <- recentFirst =<< loadAll "posts/*"
+            let indexCtx =
+                    listField "posts" postCtx (return posts) `mappend`
+                    defaultContext
 
             getResourceBody
                 >>= applyAsTemplate indexCtx
-                >>= loadAndApplyTemplate "templates/default.html" postCtx
+                >>= loadAndApplyTemplate "templates/default.html" indexCtx
                 >>= relativizeUrls
 
     match "templates/*" $ compile templateCompiler
@@ -62,15 +65,6 @@ postCtx =
     dateField "date" "%B %e, %Y" `mappend`
     defaultContext
 
-
---------------------------------------------------------------------------------
-postList :: ([Item String] -> [Item String]) -> Compiler String
-postList sortFilter = do
-    posts   <- sortFilter <$> loadAll "posts/*"
-    itemTpl <- loadBody "templates/post-item.html"
-    list    <- applyTemplateList itemTpl postCtx posts
-    return list
-
 --------------------------------------------------------------------------------
 config :: Configuration
-config = defaultConfiguration { deployCommand = "rsync -avz _site/* takashi@avatheon.net:~/public_html" }
+config = defaultConfiguration { deployCommand = "rsync -avz _site/* vps:~/public_html" }
